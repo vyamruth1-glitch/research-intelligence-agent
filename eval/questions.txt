@@ -1,0 +1,9 @@
+How do different papers approach chunk size selection in RAG systems?
+
+What techniques reduce hallucination in LLMs without fine-tuning?
+
+How do reranking methods improve retrieval quality compared to basic similarity search?
+
+How do recent papers evaluate faithfulness in RAG or LLM-based systems?
+
+What are the main trade-offs between retrieval quality and response generation quality in RAG pipelines?
