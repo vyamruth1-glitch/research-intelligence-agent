@@ -1,0 +1,10 @@
+llama-index-core
+llama-index-readers-file
+sentence-transformers
+qdrant-client
+llama-index-vector-stores-qdrant
+groq
+python-dotenv
+fastapi
+uvicorn
+llama-index-embeddings-huggingface
