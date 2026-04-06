@@ -5,6 +5,7 @@ from qdrant_client import QdrantClient
 from groq import Groq
 import os
 from dotenv import load_dotenv
+from query_rewriter import rewrite_query
 
 load_dotenv()
 
@@ -14,7 +15,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 )
 Settings.llm = None  # we handle LLM calls manually via Groq
 
-def get_retriever():
+def get_diverse_retriever(question: str, top_k_per_source: int = 2):
     client = QdrantClient(host="localhost", port=6333)
     vector_store = QdrantVectorStore(
         client=client,
@@ -27,40 +28,64 @@ def get_retriever():
         vector_store,
         storage_context=storage_context
     )
-    return index.as_retriever(similarity_top_k=5)
+
+    # Retrieve more candidates than needed, then enforce diversity
+    retriever = index.as_retriever(similarity_top_k=15)
+    all_nodes = retriever.retrieve(question)
+
+    # Enforce source diversity — max 2 chunks per paper
+    seen_sources = {}
+    diverse_nodes = []
+
+    for node in all_nodes:
+        source = node.metadata.get('file_name', 'unknown')
+        count = seen_sources.get(source, 0)
+        if count < top_k_per_source:
+            diverse_nodes.append(node)
+            seen_sources[source] = count + 1
+        if len(diverse_nodes) >= 6:
+            break
+
+    return diverse_nodes
 
 
 def query_papers(question: str) -> dict:
-    retriever = get_retriever()
+    rewritten_question = rewrite_query(question)
 
-    # Retrieve relevant chunks
-    nodes = retriever.retrieve(question)
+    # Retrieve diverse chunks using rewritten query
+    nodes = get_diverse_retriever(rewritten_question)
 
     # Build context from retrieved chunks
-    context = "\n\n".join([
-        f"Source: {node.metadata.get('file_name', 'unknown')}\n"
-        f"Relevance Score: {round(node.score, 3)}\n"
-        f"{node.text}"
+    context = "\n\n---\n\n".join([
+        f"PAPER: {node.metadata.get('file_name', 'unknown')}\n"
+        f"Relevance: {round(node.score, 3)}\n"
+        f"Content: {node.text}"
         for node in nodes
     ])
 
     # Send to LLM via Groq
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-    prompt = f"""You are a research assistant helping analyze AI/ML papers.
+    prompt = f"""You are a research assistant analyzing multiple AI/ML papers.
 
-Answer the question using ONLY the provided context.
-- If the context contains enough information, answer clearly and cite sources.
-- If the context is insufficient, say explicitly: 
-  "The retrieved context does not contain enough information to answer this."
-- Never invent information not present in the context.
+Your job is to answer the question by reasoning ACROSS the provided sources.
+
+Instructions:
+- Treat each PAPER section as a distinct source with potentially different positions
+- If papers agree, say so explicitly
+- If papers disagree or take different approaches, surface that difference clearly
+- If a paper only mentions the topic indirectly, say that explicitly instead of overstating it
+- If retrieved context is insufficient to answer confidently, say:
+  "Retrieved context is insufficient — this question needs broader coverage"
+- Never synthesize a smooth answer that hides disagreement between sources
+- Always attribute claims to specific papers
 
 Context:
 {context}
 
 Question: {question}
 
-Answer:"""
+Answer (reason across sources explicitly):"""
 
     response = groq_client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -76,6 +101,7 @@ Answer:"""
 
     return {
         "question": question,
+        "rewritten_query": rewritten_question,
         "answer": answer,
         "sources": sources,
         "retrieved_chunks": len(nodes),
@@ -84,10 +110,12 @@ Answer:"""
 
 
 if __name__ == "__main__":
-    question = "What are the main trade-offs between retrieval quality and response generation quality in RAG pipelines?"
+    # Test with one real question first
+    question = "How do different papers approach reducing hallucination in RAG?"
     result = query_papers(question)
-    
-    print(f"\nQuestion: {result['question']}")
+
+    print(f"\nOriginal Question: {result['question']}")
+    print(f"Rewritten Query: {result['rewritten_query']}")
     print(f"\nAnswer:\n{result['answer']}")
     print(f"\nSources: {result['sources']}")
     print(f"Chunks retrieved: {result['retrieved_chunks']}")
