@@ -5,8 +5,8 @@ from qdrant_client import QdrantClient
 from groq import Groq
 import os
 from dotenv import load_dotenv
-from query_rewriter import rewrite_query
-
+from src.query_rewriter import rewrite_query
+from src.evaluator import evaluate_response
 load_dotenv()
 
 # Must match exactly what was used during ingestion
@@ -14,6 +14,7 @@ Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
 )
 Settings.llm = None  # we handle LLM calls manually via Groq
+
 
 def get_diverse_retriever(question: str, top_k_per_source: int = 2):
     client = QdrantClient(host="localhost", port=6333)
@@ -49,7 +50,7 @@ def get_diverse_retriever(question: str, top_k_per_source: int = 2):
     return diverse_nodes
 
 
-def query_papers(question: str) -> dict:
+def query_papers(question: str, evaluate: bool = True) -> dict:
     rewritten_question = rewrite_query(question)
 
     # Retrieve diverse chunks using rewritten query
@@ -99,7 +100,7 @@ Answer (reason across sources explicitly):"""
         for node in nodes
     ]))
 
-    return {
+    result = {
         "question": question,
         "rewritten_query": rewritten_question,
         "answer": answer,
@@ -108,11 +109,23 @@ Answer (reason across sources explicitly):"""
         "top_relevance_score": round(nodes[0].score, 3) if nodes else 0
     }
 
+    # Run evaluation if requested
+    if evaluate:
+        evaluation = evaluate_response(
+            question=question,
+            answer=answer,
+            context=context,
+            nodes=nodes
+        )
+        result["evaluation"] = evaluation
+
+    return result
+
 
 if __name__ == "__main__":
     # Test with one real question first
     question = "How do different papers approach reducing hallucination in RAG?"
-    result = query_papers(question)
+    result = query_papers(question, evaluate=True)
 
     print(f"\nOriginal Question: {result['question']}")
     print(f"Rewritten Query: {result['rewritten_query']}")
@@ -120,3 +133,11 @@ if __name__ == "__main__":
     print(f"\nSources: {result['sources']}")
     print(f"Chunks retrieved: {result['retrieved_chunks']}")
     print(f"Top relevance score: {result['top_relevance_score']}")
+
+    if "evaluation" in result:
+        print("\n--- Evaluation ---")
+        print(f"Overall Confidence: {result['evaluation']['overall_confidence']}")
+        print(f"Faithfulness: {result['evaluation']['faithfulness'].get('faithfulness_score', 'N/A')}")
+        print(f"Sufficiency: {result['evaluation']['retrieval_sufficiency'].get('sufficiency_score', 'N/A')}")
+        print(f"Source Coverage: {result['evaluation']['source_coverage'].get('coverage_score', 'N/A')}")
+        print(f"Recommendation: {result['evaluation']['recommendation']}")

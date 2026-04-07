@@ -1,0 +1,47 @@
+[
+  {
+    "question": "How do different papers approach reducing hallucination in RAG?",
+    "overall_confidence": "HIGH",
+    "faithfulness": "MEDIUM",
+    "sufficiency": "SUFFICIENT",
+    "source_coverage": "GOOD",
+    "papers_used": 4,
+    "recommendation": "Answer is well-grounded. Safe to use."
+  },
+  {
+    "question": "How do the approaches to chunking differ across papers?",
+    "overall_confidence": "MEDIUM",
+    "faithfulness": "MEDIUM",
+    "sufficiency": "SUFFICIENT",
+    "source_coverage": "MODERATE",
+    "papers_used": 2,
+    "recommendation": "Answer is partially grounded. Treat with moderate caution."
+  },
+  {
+    "question": "What techniques reduce hallucination in LLMs without fine-tuning?",
+    "overall_confidence": "MEDIUM",
+    "faithfulness": "LOW",
+    "sufficiency": "PARTIAL",
+    "source_coverage": "GOOD",
+    "papers_used": 3,
+    "recommendation": "Answer is partially grounded. Treat with moderate caution."
+  },
+  {
+    "question": "How do reranking methods improve retrieval quality compared to basic similarity search?",
+    "overall_confidence": "MEDIUM",
+    "faithfulness": "MEDIUM",
+    "sufficiency": "PARTIAL",
+    "source_coverage": "MODERATE",
+    "papers_used": 2,
+    "recommendation": "Answer is partially grounded. Treat with moderate caution."
+  },
+  {
+    "question": "What are the main trade-offs between retrieval quality and response generation quality in RAG pipelines?",
+    "overall_confidence": "MEDIUM",
+    "faithfulness": "MEDIUM",
+    "sufficiency": "PARTIAL",
+    "source_coverage": "MODERATE",
+    "papers_used": 2,
+    "recommendation": "Answer is partially grounded. Treat with moderate caution."
+  }
+]
