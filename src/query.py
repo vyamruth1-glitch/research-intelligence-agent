@@ -17,7 +17,7 @@ Settings.llm = None  # we handle LLM calls manually via Groq
 
 
 def get_diverse_retriever(question: str, top_k_per_source: int = 2):
-    client = QdrantClient(host="localhost", port=6333)
+    client = QdrantClient(host="qdrant", port=6333)
     vector_store = QdrantVectorStore(
         client=client,
         collection_name="research_papers"
@@ -48,7 +48,6 @@ def get_diverse_retriever(question: str, top_k_per_source: int = 2):
             break
 
     return diverse_nodes
-
 
 def query_papers(question: str, evaluate: bool = True) -> dict:
     rewritten_question = rewrite_query(question)
