@@ -7,9 +7,14 @@ deduplication by canonical ArXiv ID.
 
 Usage:
   python -m src.arxiv_ingest           # full run — wipes collection first
-  python -m src.arxiv_ingest --resume  # adds to existing collection; skips already-ingested papers
+  python -m src.arxiv_ingest --resume  # skips already-ingested papers; adds new ones
+  python -m src.arxiv_ingest --retry   # retries only papers that previously failed (data/failed_ids.txt)
+
+Environment:
+  QDRANT_HOST  Qdrant hostname (default: "qdrant" for Docker; set to "localhost" to run outside Docker)
 """
 
+import os
 import sys
 import tempfile
 import time
@@ -30,6 +35,9 @@ COLLECTION_NAME = "research_papers"
 MAX_PER_TOPIC = 20          # 20 × 6 topics = 120 candidates; dedup reduces this slightly
 PDF_DOWNLOAD_DELAY = 5      # seconds between PDF downloads — separate from the API query
                             # delay; ArXiv's PDF server rate-limits bulk fetches independently
+PDF_RETRY_DELAY = 15        # longer delay for --retry mode; failed papers are more likely
+                            # to hit 429 again if retried at the same pace
+FAILED_IDS_FILE = "data/failed_ids.txt"  # tab-separated: arxiv_id \t topic
 
 # Queries are deliberately specific — broader terms like "RAG" alone surface
 # tangentially related papers; adding "knowledge grounding" or "evaluation metrics"
@@ -42,6 +50,14 @@ TOPICS = {
     "hallucination": "hallucination detection mitigation language models",
     "RAG_eval":      "retrieval augmented generation evaluation metrics",
 }
+
+
+def get_qdrant_client() -> QdrantClient:
+    # QDRANT_HOST defaults to "qdrant" (the Docker service name) so the script
+    # works inside the container without any config. Set QDRANT_HOST=localhost
+    # to run the script directly outside Docker against the exposed port.
+    host = os.getenv("QDRANT_HOST", "qdrant")
+    return QdrantClient(host=host, port=6333)
 
 
 def wipe_collection(client: QdrantClient) -> None:
@@ -81,6 +97,39 @@ def load_existing_arxiv_ids(client: QdrantClient) -> set[str]:
         if offset is None:
             break
     return ids
+
+
+def load_failed_ids() -> list[tuple[str, str]]:
+    # Read failed_ids.txt and return (arxiv_id, topic) pairs.
+    # Each line is tab-separated: "2310.11511\tRAG"
+    if not os.path.exists(FAILED_IDS_FILE):
+        print(f"[RETRY] No failed IDs file found at {FAILED_IDS_FILE}")
+        return []
+    entries = []
+    with open(FAILED_IDS_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                entries.append((parts[0], parts[1]))
+    return entries
+
+
+def record_failure(arxiv_id: str, topic: str) -> None:
+    # Append this arxiv_id+topic to the failures file so --retry can target it.
+    # Appending (not overwriting) means multiple runs accumulate into one list;
+    # the dedup in seen_ids prevents double-entries from causing double ingestion.
+    os.makedirs(os.path.dirname(FAILED_IDS_FILE), exist_ok=True)
+    with open(FAILED_IDS_FILE, "a") as f:
+        f.write(f"{arxiv_id}\t{topic}\n")
+
+
+def clear_failed_ids_file() -> None:
+    if os.path.exists(FAILED_IDS_FILE):
+        os.remove(FAILED_IDS_FILE)
+        print(f"[RETRY] Cleared {FAILED_IDS_FILE} — starting fresh failure log")
 
 
 def extract_arxiv_id(entry_id: str) -> str:
@@ -143,18 +192,67 @@ def chunk_paper(paper: arxiv.Result, topic: str) -> list:
     return nodes
 
 
-def run_arxiv_ingest(resume: bool = False) -> None:
-    client = QdrantClient(host="qdrant", port=6333)
+def ingest_paper(paper: arxiv.Result, topic: str, index: VectorStoreIndex,
+                 seen_ids: set[str], stats: dict, delay: int) -> None:
+    """Attempt to ingest one paper; update seen_ids, stats, and failures file."""
+    arxiv_id = extract_arxiv_id(paper.entry_id)
 
-    if resume:
-        # Load arxiv_ids already in Qdrant so we skip them without re-downloading.
-        # This lets a crashed run pick up where it left off without wiping the
-        # papers that were successfully ingested before the crash.
+    if arxiv_id in seen_ids:
+        print(f"  [SKIP] {arxiv_id} — already ingested")
+        stats["skipped"] += 1
+        return
+
+    try:
+        title_preview = paper.title.replace("\n", " ")[:55]
+        print(f"  [GET]  {arxiv_id}  {title_preview}...")
+        nodes = chunk_paper(paper, topic)
+        index.insert_nodes(nodes)
+        seen_ids.add(arxiv_id)
+        stats["ingested"] += 1
+        print(f"  [OK]   {arxiv_id}  {len(nodes)} chunks stored")
+
+    except Exception as e:
+        # Log, record to file for --retry, and continue to the next paper.
+        # A single bad PDF (scanned, corrupted, rate-limited) should not
+        # abort the topic or the run.
+        print(f"  [FAIL] {arxiv_id}  {e}")
+        stats["failed"] += 1
+        record_failure(arxiv_id, topic)
+
+    finally:
+        # Throttle PDF downloads independently of the API query delay.
+        # ArXiv's PDF server enforces its own rate limit; without this
+        # sleep the bulk of downloads trigger 429s on the PDF endpoint.
+        time.sleep(delay)
+
+
+def run_arxiv_ingest(resume: bool = False, retry: bool = False) -> None:
+    client = get_qdrant_client()
+
+    if retry:
+        # --retry: load only the previously-failed papers and attempt them
+        # again with a longer inter-download delay to give ArXiv time to recover.
+        failed = load_failed_ids()
+        if not failed:
+            return
+        seen_ids = load_existing_arxiv_ids(client)
+        print(f"[RETRY] {len(failed)} failed papers to retry | "
+              f"{len(seen_ids)} already in Qdrant")
+        # Clear the file now; failures during this retry run will re-populate it
+        clear_failed_ids_file()
+        delay = PDF_RETRY_DELAY
+    elif resume:
+        # --resume: skip everything already in Qdrant, add what's missing.
+        # Used to continue after a crashed run without re-downloading successes.
         seen_ids = load_existing_arxiv_ids(client)
         print(f"[RESUME] Found {len(seen_ids)} existing papers in Qdrant — will skip these")
+        delay = PDF_DOWNLOAD_DELAY
     else:
         wipe_collection(client)
         seen_ids = set()
+        # Clear stale failures from a previous full run so --retry stays accurate
+        clear_failed_ids_file()
+        delay = PDF_DOWNLOAD_DELAY
 
     vector_store = QdrantVectorStore(client=client, collection_name=COLLECTION_NAME)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -174,62 +272,57 @@ def run_arxiv_ingest(resume: bool = False) -> None:
     # one request per 3 seconds. num_retries=3 handles transient network failures.
     arxiv_client = arxiv.Client(delay_seconds=3, num_retries=3)
 
-    for topic, query in TOPICS.items():
-        print(f"\n[TOPIC] {topic}  |  query: \"{query}\"")
+    if retry:
+        # Fetch metadata for specific arxiv_ids using ArXiv's id_list parameter.
+        # Group into batches of 20 to avoid oversized API requests.
+        print(f"\n[RETRY] Fetching {len(failed)} papers by ID...")
+        batch_size = 20
+        for i in range(0, len(failed), batch_size):
+            batch = failed[i:i + batch_size]
+            id_list = [aid for aid, _ in batch]
+            topic_map = {aid: topic for aid, topic in batch}
 
-        search = arxiv.Search(
-            query=query,
-            max_results=MAX_PER_TOPIC,
-            # Relevance ranking surfaces the most cited / closely matched papers
-            # first, which is more useful than recency for a research corpus
-            sort_by=arxiv.SortCriterion.Relevance,
-        )
+            try:
+                search = arxiv.Search(id_list=id_list)
+                for paper in arxiv_client.results(search):
+                    arxiv_id = extract_arxiv_id(paper.entry_id)
+                    topic = topic_map.get(arxiv_id, "unknown")
+                    ingest_paper(paper, topic, index, seen_ids, stats, delay)
+            except Exception as e:
+                print(f"  [BATCH ERROR] {e}")
 
-        # Wrap the entire topic iteration so an API-level 429 or 503 (which the
-        # arxiv library raises after exhausting num_retries) doesn't crash the
-        # whole run — we log the failure and move to the next topic instead.
-        try:
-            for paper in arxiv_client.results(search):
-                arxiv_id = extract_arxiv_id(paper.entry_id)
+    else:
+        for topic, query in TOPICS.items():
+            print(f"\n[TOPIC] {topic}  |  query: \"{query}\"")
 
-                if arxiv_id in seen_ids:
-                    print(f"  [SKIP] {arxiv_id} — already ingested")
-                    stats["skipped"] += 1
-                    continue
+            search = arxiv.Search(
+                query=query,
+                max_results=MAX_PER_TOPIC,
+                # Relevance ranking surfaces the most cited / closely matched papers
+                # first, which is more useful than recency for a research corpus
+                sort_by=arxiv.SortCriterion.Relevance,
+            )
 
-                try:
-                    title_preview = paper.title.replace("\n", " ")[:55]
-                    print(f"  [GET]  {arxiv_id}  {title_preview}...")
-                    nodes = chunk_paper(paper, topic)
-                    index.insert_nodes(nodes)
-                    seen_ids.add(arxiv_id)
-                    stats["ingested"] += 1
-                    print(f"  [OK]   {arxiv_id}  {len(nodes)} chunks stored")
-
-                except Exception as e:
-                    # A single bad PDF (scanned, corrupted, rate-limited) should
-                    # not abort the topic — log and continue to the next paper
-                    print(f"  [FAIL] {arxiv_id}  {e}")
-                    stats["failed"] += 1
-
-                finally:
-                    # Throttle PDF downloads independently of the API query delay.
-                    # ArXiv's PDF server enforces its own rate limit; without this
-                    # sleep the bulk of downloads trigger 429s on the PDF endpoint.
-                    time.sleep(PDF_DOWNLOAD_DELAY)
-
-        except Exception as e:
-            # API-level failure (429/503 after all retries) — skip this topic
-            # entirely rather than crashing and losing all progress so far
-            print(f"  [TOPIC ERROR] {topic} — API error after retries: {e}")
+            # Wrap the entire topic iteration so an API-level 429 or 503 (which the
+            # arxiv library raises after exhausting num_retries) doesn't crash the
+            # whole run — we log the failure and move to the next topic instead.
+            try:
+                for paper in arxiv_client.results(search):
+                    ingest_paper(paper, topic, index, seen_ids, stats, delay)
+            except Exception as e:
+                # API-level failure after all retries — skip topic, preserve progress
+                print(f"  [TOPIC ERROR] {topic} — API error after retries: {e}")
 
     print(f"\n{'=' * 42}")
     print(f"  Ingested : {stats['ingested']} papers")
     print(f"  Skipped  : {stats['skipped']} duplicates / already present")
     print(f"  Failed   : {stats['failed']} errors")
+    if stats["failed"] > 0:
+        print(f"  → Run with --retry to attempt failed papers at a slower pace")
     print(f"{'=' * 42}")
 
 
 if __name__ == "__main__":
-    resume = "--resume" in sys.argv
-    run_arxiv_ingest(resume=resume)
+    retry  = "--retry"  in sys.argv
+    resume = "--resume" in sys.argv and not retry
+    run_arxiv_ingest(resume=resume, retry=retry)

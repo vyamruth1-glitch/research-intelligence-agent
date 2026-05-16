@@ -19,6 +19,7 @@ services:
       - HF_HOME=/root/.cache/huggingface
       - TRANSFORMERS_CACHE=/root/.cache/huggingface
     volumes:
+      - ./src:/app/src
       - ~/.cache/huggingface:/root/.cache/huggingface
     depends_on:
       - qdrant
