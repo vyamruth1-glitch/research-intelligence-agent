@@ -9,6 +9,7 @@ llama-index-vector-stores-qdrant
 llama-index-embeddings-huggingface
 
 qdrant-client
+arxiv>=2.1.0
 
 torch==2.4.1
 transformers==4.44.2

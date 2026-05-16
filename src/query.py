@@ -39,7 +39,7 @@ def get_diverse_retriever(question: str, top_k_per_source: int = 2):
     diverse_nodes = []
 
     for node in all_nodes:
-        source = node.metadata.get('file_name', 'unknown')
+        source = node.metadata.get('title', node.metadata.get('file_name', 'unknown'))
         count = seen_sources.get(source, 0)
         if count < top_k_per_source:
             diverse_nodes.append(node)
@@ -57,7 +57,7 @@ def query_papers(question: str, evaluate: bool = True) -> dict:
 
     # Build context from retrieved chunks
     context = "\n\n---\n\n".join([
-        f"PAPER: {node.metadata.get('file_name', 'unknown')}\n"
+        f"PAPER: {node.metadata.get('title', node.metadata.get('file_name', 'unknown'))}\n"
         f"Relevance: {round(node.score, 3)}\n"
         f"Content: {node.text}"
         for node in nodes
@@ -95,7 +95,7 @@ Answer (reason across sources explicitly):"""
 
     answer = response.choices[0].message.content
     sources = list(set([
-        node.metadata.get('file_name', 'unknown')
+        node.metadata.get('title', node.metadata.get('file_name', 'unknown'))
         for node in nodes
     ]))
 
