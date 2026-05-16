@@ -113,7 +113,7 @@ docker exec -it research-intelligence-agent-api-1 python src/ingest.py
 ---
 
 ## Sample API Usage
-
+This example demonstrates retrieval, query rewriting, evaluator scoring, and source-grounded answer generation.
 ### Request
 
 ```bash
