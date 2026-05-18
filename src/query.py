@@ -108,7 +108,7 @@ Context:
 
 Question: {question}
 
-Answer (reason across sources explicitly):"""
+Answer (reason across sources explicitly, in plain prose only — do not output JSON, markdown code blocks, or structured data):"""
 
     response = groq_client.chat.completions.create(
         model="llama-3.1-8b-instant",

@@ -121,7 +121,7 @@ def evaluate_source_coverage(nodes: list) -> dict:
     Measures whether the answer drew from multiple papers.
     Does not need an LLM — computed directly from retrieved nodes.
     """
-    sources = [node.metadata.get('file_name', 'unknown') for node in nodes]
+    sources = [node.metadata.get('title', node.metadata.get('file_name', 'unknown')) for node in nodes]
     unique_sources = list(set(sources))
 
     if len(unique_sources) >= 3:
