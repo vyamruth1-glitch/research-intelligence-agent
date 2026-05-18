@@ -1,0 +1,178 @@
+/usr/local/lib/python3.11/site-packages/transformers/utils/hub.py:127: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+LLM is explicitly disabled. Using MockLLM.
+[RESUME] Found 52 existing papers in Qdrant — will skip these
+
+[TOPIC] RAG  |  query: "retrieval augmented generation knowledge grounding"
+  [SKIP] 2506.06962 — already ingested
+  [SKIP] 2504.13684 — already ingested
+  [SKIP] 2603.14541 — already ingested
+  [SKIP] 2504.17204 — already ingested
+  [SKIP] 2402.12317 — already ingested
+  [SKIP] 2504.14689 — already ingested
+  [SKIP] 2502.00306 — already ingested
+  [SKIP] 2411.18583 — already ingested
+  [GET]  2605.12335  EHR-RAGp: Retrieval-Augmented Prototype-Guided Foundati...
+2026-05-18 16:49:51,419 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:49:51,649 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2605.12335  86 chunks stored
+  [SKIP] 2504.19754 — already ingested
+  [SKIP] 2309.15217 — already ingested
+  [SKIP] 2507.23334 — already ingested
+  [GET]  2601.05264  Engineering the RAG Stack: A Comprehensive Review of th...
+  [FAIL] 2601.05264  HTTP Error 429: Unknown Error
+  [SKIP] 2207.03030 — already ingested
+  [GET]  2602.22219  Comparative Analysis of Neural Retriever-Reranker Pipel...
+  [FAIL] 2602.22219  HTTP Error 429: Unknown Error
+  [SKIP] 2510.22344 — already ingested
+  [GET]  2307.06985  Retrieval Augmented Generation using Engineering Design...
+  [FAIL] 2307.06985  HTTP Error 429: Unknown Error
+  [GET]  2601.11863  Utilizing Metadata for Better Retrieval-Augmented Gener...
+  [FAIL] 2601.11863  <urlopen error retrieval incomplete: got only 1048576 out of 1131788 bytes>
+  [SKIP] 1811.08772 — already ingested
+  [SKIP] 2512.24268 — already ingested
+
+[TOPIC] LLM_eval  |  query: "large language model evaluation benchmark"
+2026-05-18 16:50:49,900 - INFO - Requesting page (first: True, try: 0): https://export.arxiv.org/api/query?search_query=large+language+model+evaluation+benchmark&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 16:50:53,910 - INFO - Got first page: 100 of 1564610 total results
+  [GET]  2403.03788  PPTC-R benchmark: Towards Evaluating the Robustness of ...
+  [FAIL] 2403.03788  HTTP Error 429: Unknown Error
+  [SKIP] 1610.00031 — already ingested
+  [SKIP] 2510.22758 — already ingested
+  [GET]  2306.13394  MME: A Comprehensive Evaluation Benchmark for Multimoda...
+  [FAIL] 2306.13394  <urlopen error retrieval incomplete: got only 1048576 out of 7649607 bytes>
+  [GET]  2306.09265  LVLM-eHub: A Comprehensive Evaluation Benchmark for Lar...
+  [FAIL] 2306.09265  HTTP Error 429: Unknown Error
+  [GET]  1312.3005  One Billion Word Benchmark for Measuring Progress in St...
+  [FAIL] 1312.3005  HTTP Error 429: Unknown Error
+  [SKIP] 2309.13345 — already ingested
+  [SKIP] 2307.12114 — already ingested
+  [SKIP] 2304.12244 — already ingested
+  [SKIP] 2407.08029 — already ingested
+  [SKIP] 2402.11651 — already ingested
+  [SKIP] 2403.03690 — already ingested
+  [SKIP] 2312.10793 — already ingested
+  [SKIP] 2310.00905 — already ingested
+  [GET]  2602.22827  TARAZ: Persian Short-Answer Question Benchmark for Cult...
+  [FAIL] 2602.22827  <urlopen error retrieval incomplete: got only 2097152 out of 2428433 bytes>
+  [SKIP] 2409.11353 — already ingested
+  [SKIP] 1610.00030 — already ingested
+  [GET]  2406.09181  A Large-scale Universal Evaluation Benchmark For Face F...
+  [FAIL] 2406.09181  HTTP Error 429: Unknown Error
+  [SKIP] 2310.00034 — already ingested
+  [SKIP] 2305.14982 — already ingested
+
+[TOPIC] agents  |  query: "LLM autonomous agents tool use planning"
+2026-05-18 16:52:03,547 - INFO - Requesting page (first: True, try: 0): https://export.arxiv.org/api/query?search_query=LLM+autonomous+agents+tool+use+planning&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 16:52:06,463 - INFO - Got first page: 100 of 1519441 total results
+  [GET]  2601.10758  Too Helpful to Be Safe: User-Mediated Attacks on Planni...
+  [FAIL] 2601.10758  HTTP Error 429: Unknown Error
+  [GET]  2107.05664  Altruistic Maneuver Planning for Cooperative Autonomous...
+  [FAIL] 2107.05664  <urlopen error retrieval incomplete: got only 1048576 out of 1749099 bytes>
+  [GET]  2504.00727  Personality-Driven Decision-Making in LLM-Based Autonom...
+  [FAIL] 2504.00727  HTTP Error 429: Unknown Error
+  [SKIP] 2111.01762 — already ingested
+  [SKIP] 2305.00561 — already ingested
+  [SKIP] 2602.04518 — already ingested
+  [GET]  1503.07220  Individual Planning in Agent Populations: Exploiting An...
+  [FAIL] 1503.07220  HTTP Error 429: Unknown Error
+  [GET]  2411.16313  CATP-LLM: Empowering Large Language Models for Cost-Awa...
+  [FAIL] 2411.16313  <urlopen error retrieval incomplete: got only 1048576 out of 1539744 bytes>
+  [GET]  2506.07217  BIMgent: Towards Autonomous Building Modeling via Compu...
+  [FAIL] 2506.07217  HTTP Error 429: Unknown Error
+  [SKIP] 2305.09349 — already ingested
+  [SKIP] 2401.07324 — already ingested
+  [GET]  2603.26635  Deception and Communication in Autonomous Multi-Agent S...
+  [FAIL] 2603.26635  HTTP Error 429: Unknown Error
+  [SKIP] 2309.07870 — already ingested
+  [GET]  2512.21309  A Plan Reuse Mechanism for LLM-Driven Agent...
+  [FAIL] 2512.21309  HTTP Error 429: Unknown Error
+  [GET]  2412.20505  Planning, Living and Judging: A Multi-agent LLM-based F...
+  [FAIL] 2412.20505  <urlopen error retrieval incomplete: got only 3145728 out of 7759421 bytes>
+  [SKIP] 2602.15006 — already ingested
+  [GET]  2502.11355  Nuclear Deployed: Analyzing Catastrophic Risks in Decis...
+  [FAIL] 2502.11355  <urlopen error retrieval incomplete: got only 3145728 out of 6268129 bytes>
+  [GET]  2506.11419  FocalAD: Local Motion Planning for End-to-End Autonomou...
+  [FAIL] 2506.11419  <urlopen error retrieval incomplete: got only 1048576 out of 2702615 bytes>
+  [GET]  2601.11903  AEMA: Verifiable Evaluation Framework for Trustworthy a...
+2026-05-18 16:53:44,870 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2601.11903  23 chunks stored
+  [SKIP] 2603.17419 — already ingested
+
+[TOPIC] embeddings  |  query: "sentence embeddings semantic similarity dense retrieval"
+2026-05-18 16:53:49,917 - INFO - Requesting page (first: True, try: 0): https://export.arxiv.org/api/query?search_query=sentence+embeddings+semantic+similarity+dense+retrieval&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 16:53:53,069 - INFO - Got first page: 100 of 421826 total results
+  [SKIP] 1809.09924 — already ingested
+  [SKIP] 2502.14620 — already ingested
+  [SKIP] 1911.08743 — already ingested
+  [SKIP] 2602.00899 — already ingested
+  [SKIP] 1811.08772 — already ingested
+  [GET]  1704.05295  Semantic Similarity from Natural Language and Ontology ...
+2026-05-18 16:56:53,004 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,152 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,198 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,268 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,292 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,314 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+2026-05-18 16:56:53,329 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   1704.05295  415 chunks stored
+  [GET]  1908.05541  Hamming Sentence Embeddings for Information Retrieval...
+2026-05-18 16:57:09,025 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   1908.05541  14 chunks stored
+  [GET]  2307.07851  AspectCSE: Sentence Embeddings for Aspect-based Semanti...
+2026-05-18 16:57:31,089 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2307.07851  34 chunks stored
+  [GET]  2506.00041  Decoding Dense Embeddings: Sparse Autoencoders for Inte...
+2026-05-18 16:58:00,702 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2506.00041  48 chunks stored
+  [GET]  2505.22202  Latent Reasoning via Sentence Embedding Prediction...
+  [FAIL] 2505.22202  HTTP Error 503: Service Unavailable
+  [GET]  2205.02303  Analysing the Robustness of Dual Encoders for Dense Ret...
+  [FAIL] 2205.02303  HTTP Error 429: Unknown Error
+  [GET]  2108.06279  On Single and Multiple Representations in Dense Passage...
+  [FAIL] 2108.06279  HTTP Error 429: Unknown Error
+  [GET]  1906.00041  Table2Vec: Neural Word and Entity Embeddings for Table ...
+  [FAIL] 1906.00041  HTTP Error 429: Unknown Error
+  [SKIP] 1804.07835 — already ingested
+  [GET]  2010.12637  Comparative analysis of word embeddings in assessing se...
+  [FAIL] 2010.12637  <urlopen error retrieval incomplete: got only 1048576 out of 1354024 bytes>
+  [GET]  2203.07687  Compressing Sentence Representation for Semantic Retrie...
+  [FAIL] 2203.07687  HTTP Error 429: Too Many Requests
+  [GET]  2206.14381  Exploiting Semantic Role Contextualized Video Features ...
+2026-05-18 17:03:01,354 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2206.14381  11 chunks stored
+  [GET]  2110.02030  Exploiting Twitter as Source of Large Corpora of Weakly...
+2026-05-18 17:03:22,521 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2110.02030  28 chunks stored
+  [GET]  2206.03281  Unsupervised Context Aware Sentence Representation Pret...
+2026-05-18 17:03:41,167 - INFO - HTTP Request: PUT http://qdrant:6333/collections/research_papers/points?wait=true "HTTP/1.1 200 OK"
+  [OK]   2206.03281  31 chunks stored
+  [SKIP] 2503.17279 — already ingested
+
+[TOPIC] hallucination  |  query: "hallucination detection mitigation language models"
+2026-05-18 17:03:46,194 - INFO - Requesting page (first: True, try: 0): https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:03:56,765 - INFO - Sleeping: 2.999222 seconds
+2026-05-18 17:03:59,814 - INFO - Requesting page (first: True, try: 1): https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:04:00,294 - INFO - Sleeping: 2.995648 seconds
+2026-05-18 17:04:03,292 - INFO - Requesting page (first: True, try: 2): https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:04:03,658 - INFO - Sleeping: 2.999720 seconds
+2026-05-18 17:04:06,664 - INFO - Requesting page (first: True, try: 3): https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+  [TOPIC ERROR] hallucination — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] RAG_eval  |  query: "retrieval augmented generation evaluation metrics"
+2026-05-18 17:04:07,012 - INFO - Sleeping: 2.985000 seconds
+2026-05-18 17:04:10,006 - INFO - Requesting page (first: True, try: 0): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:05:11,975 - INFO - Sleeping: 2.999746 seconds
+2026-05-18 17:05:14,987 - INFO - Requesting page (first: True, try: 1): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:05:15,754 - INFO - Sleeping: 2.999920 seconds
+2026-05-18 17:05:18,761 - INFO - Requesting page (first: True, try: 2): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+2026-05-18 17:05:34,512 - INFO - Sleeping: 2.999543 seconds
+2026-05-18 17:05:37,538 - INFO - Requesting page (first: True, try: 3): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+  [TOPIC ERROR] RAG_eval — API error after retries: Page request resulted in HTTP 503 (https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+==========================================
+  Ingested : 9 papers
+  Skipped  : 44 duplicates / already present
+  Failed   : 27 errors
+  → Run with --retry to attempt failed papers at a slower pace
+==========================================
