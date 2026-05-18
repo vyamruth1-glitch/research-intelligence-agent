@@ -1,0 +1,135 @@
+=== Overnight ArXiv Ingestion ===
+Started: Mon May 18 09:20:17 IST 2026
+
+--- Attempt 1 of 3 ---
+2026-05-18 03:50:19,540 - INFO - Requesting page (first: True, try: 2): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+/usr/local/lib/python3.11/site-packages/transformers/utils/hub.py:127: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+2026-05-18 03:50:35,320 - INFO - Sleeping: 2.999755 seconds
+2026-05-18 03:50:38,329 - INFO - Requesting page (first: True, try: 3): https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100
+LLM is explicitly disabled. Using MockLLM.
+[RESUME] Found 49 existing papers in Qdrant — will skip these
+
+[TOPIC] RAG  |  query: "retrieval augmented generation knowledge grounding"
+  [SKIP] 2506.06962 — already ingested
+  [SKIP] 2504.13684 — already ingested
+  [SKIP] 2603.14541 — already ingested
+  [SKIP] 2504.17204 — already ingested
+  [SKIP] 2402.12317 — already ingested
+  [SKIP] 2504.14689 — already ingested
+  [SKIP] 2502.00306 — already ingested
+  [SKIP] 2411.18583 — already ingested
+  [GET]  2605.12335  EHR-RAGp: Retrieval-Augmented Prototype-Guided Foundati...
+  [FAIL] 2605.12335  <urlopen error retrieval incomplete: got only 2097152 out of 4039420 bytes>
+  [SKIP] 2504.19754 — already ingested
+  [SKIP] 2309.15217 — already ingested
+  [SKIP] 2507.23334 — already ingested
+  [GET]  2601.05264  Engineering the RAG Stack: A Comprehensive Review of th...
+  [FAIL] 2601.05264  HTTP Error 429: Unknown Error
+  [SKIP] 2207.03030 — already ingested
+  [GET]  2602.22219  Comparative Analysis of Neural Retriever-Reranker Pipel...
+  [FAIL] 2602.22219  HTTP Error 429: Unknown Error
+  [SKIP] 2510.22344 — already ingested
+  [GET]  2307.06985  Retrieval Augmented Generation using Engineering Design...
+  [FAIL] 2307.06985  HTTP Error 429: Unknown Error
+  [GET]  2601.11863  Utilizing Metadata for Better Retrieval-Augmented Gener...
+  [FAIL] 2601.11863  <urlopen error retrieval incomplete: got only 1048576 out of 1131788 bytes>
+  [SKIP] 1811.08772 — already ingested
+  [SKIP] 2512.24268 — already ingested
+
+[TOPIC] LLM_eval  |  query: "large language model evaluation benchmark"
+  [GET]  2403.03788  PPTC-R benchmark: Towards Evaluating the Robustness of ...
+  [FAIL] 2403.03788  HTTP Error 429: Unknown Error
+  [SKIP] 1610.00031 — already ingested
+  [SKIP] 2510.22758 — already ingested
+  [GET]  2306.13394  MME: A Comprehensive Evaluation Benchmark for Multimoda...
+  [FAIL] 2306.13394  HTTP Error 429: Unknown Error
+  [GET]  2306.09265  LVLM-eHub: A Comprehensive Evaluation Benchmark for Lar...
+  [FAIL] 2306.09265  HTTP Error 429: Unknown Error
+  [GET]  1312.3005  One Billion Word Benchmark for Measuring Progress in St...
+  [FAIL] 1312.3005  HTTP Error 429: Unknown Error
+  [SKIP] 2309.13345 — already ingested
+  [SKIP] 2307.12114 — already ingested
+  [SKIP] 2304.12244 — already ingested
+  [SKIP] 2407.08029 — already ingested
+  [SKIP] 2402.11651 — already ingested
+  [SKIP] 2403.03690 — already ingested
+  [SKIP] 2312.10793 — already ingested
+  [GET]  2310.00905  All Languages Matter: On the Multilingual Safety of Lar...
+  [OK]   2310.00905  35 chunks stored
+  [GET]  2602.22827  TARAZ: Persian Short-Answer Question Benchmark for Cult...
+  [FAIL] 2602.22827  HTTP Error 429: Unknown Error
+  [SKIP] 2409.11353 — already ingested
+  [SKIP] 1610.00030 — already ingested
+  [GET]  2406.09181  A Large-scale Universal Evaluation Benchmark For Face F...
+  [FAIL] 2406.09181  HTTP Error 429: Unknown Error
+  [SKIP] 2310.00034 — already ingested
+  [SKIP] 2305.14982 — already ingested
+
+[TOPIC] agents  |  query: "LLM autonomous agents tool use planning"
+  [GET]  2601.10758  Too Helpful to Be Safe: User-Mediated Attacks on Planni...
+  [FAIL] 2601.10758  HTTP Error 429: Unknown Error
+  [GET]  2107.05664  Altruistic Maneuver Planning for Cooperative Autonomous...
+  [FAIL] 2107.05664  <urlopen error retrieval incomplete: got only 1048576 out of 1749099 bytes>
+  [GET]  2504.00727  Personality-Driven Decision-Making in LLM-Based Autonom...
+  [FAIL] 2504.00727  HTTP Error 429: Unknown Error
+  [SKIP] 2111.01762 — already ingested
+  [SKIP] 2305.00561 — already ingested
+  [SKIP] 2602.04518 — already ingested
+  [GET]  1503.07220  Individual Planning in Agent Populations: Exploiting An...
+  [FAIL] 1503.07220  HTTP Error 429: Unknown Error
+  [GET]  2411.16313  CATP-LLM: Empowering Large Language Models for Cost-Awa...
+  [FAIL] 2411.16313  <urlopen error retrieval incomplete: got only 1048576 out of 1539744 bytes>
+  [GET]  2506.07217  BIMgent: Towards Autonomous Building Modeling via Compu...
+  [FAIL] 2506.07217  <urlopen error retrieval incomplete: got only 4194304 out of 14758144 bytes>
+  [SKIP] 2305.09349 — already ingested
+  [GET]  2603.26635  Deception and Communication in Autonomous Multi-Agent S...
+  [FAIL] 2603.26635  <urlopen error retrieval incomplete: got only 1048576 out of 1952893 bytes>
+  [GET]  2309.07870  Agents: An Open-source Framework for Autonomous Languag...
+  [OK]   2309.07870  19 chunks stored
+  [GET]  2512.21309  A Plan Reuse Mechanism for LLM-Driven Agent...
+  [FAIL] 2512.21309  [Errno 32] Broken pipe
+  [SKIP] 2401.07324 — already ingested
+  [GET]  2602.15006  Distributed Quantum Gaussian Processes for Multi-Agent ...
+  [OK]   2602.15006  46 chunks stored
+  [GET]  2412.20505  Planning, Living and Judging: A Multi-agent LLM-based F...
+  [FAIL] 2412.20505  [Errno 32] Broken pipe
+  [GET]  2502.11355  Nuclear Deployed: Analyzing Catastrophic Risks in Decis...
+  [FAIL] 2502.11355  HTTP Error 429: Unknown Error
+  [GET]  2601.11903  AEMA: Verifiable Evaluation Framework for Trustworthy a...
+  [FAIL] 2601.11903  HTTP Error 429: Unknown Error
+  [GET]  2506.11419  FocalAD: Local Motion Planning for End-to-End Autonomou...
+  [FAIL] 2506.11419  HTTP Error 429: Unknown Error
+  [SKIP] 2603.17419 — already ingested
+
+[TOPIC] embeddings  |  query: "sentence embeddings semantic similarity dense retrieval"
+  [TOPIC ERROR] embeddings — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=sentence+embeddings+semantic+similarity+dense+retrieval&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] hallucination  |  query: "hallucination detection mitigation language models"
+  [TOPIC ERROR] hallucination — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] RAG_eval  |  query: "retrieval augmented generation evaluation metrics"
+  [TOPIC ERROR] RAG_eval — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+==========================================
+  Ingested : 3 papers
+  Skipped  : 34 duplicates / already present
+  Failed   : 23 errors
+  → Run with --retry to attempt failed papers at a slower pace
+==========================================
+LLM is explicitly disabled. Using MockLLM.
+[RESUME] Found 52 existing papers in Qdrant — will skip these
+
+[TOPIC] RAG  |  query: "retrieval augmented generation knowledge grounding"
+  [TOPIC ERROR] RAG — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+knowledge+grounding&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] LLM_eval  |  query: "large language model evaluation benchmark"
+  [TOPIC ERROR] LLM_eval — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=large+language+model+evaluation+benchmark&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] agents  |  query: "LLM autonomous agents tool use planning"
+  [TOPIC ERROR] agents — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=LLM+autonomous+agents+tool+use+planning&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] embeddings  |  query: "sentence embeddings semantic similarity dense retrieval"
+  [TOPIC ERROR] embeddings — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=sentence+embeddings+semantic+similarity+dense+retrieval&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] hallucination  |  query: "hallucination detection mitigation language models"
