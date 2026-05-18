@@ -1,0 +1,22 @@
+=== ArXiv Retry Ingestion ===
+Started: Mon May 18 21:50:37 IST 2026
+
+--- Attempt 1 of 3 ---
+/usr/local/lib/python3.11/site-packages/transformers/utils/hub.py:127: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+LLM is explicitly disabled. Using MockLLM.
+[RETRY] 23 failed papers to retry | 52 already in Qdrant
+[RETRY] Cleared data/failed_ids.txt — starting fresh failure log
+
+[RETRY] Fetching 23 papers by ID...
+
+Attempt 1 failed (exit 137). Waiting 5 minutes...
+--- Attempt 2 of 3 ---
+/usr/local/lib/python3.11/site-packages/transformers/utils/hub.py:127: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+LLM is explicitly disabled. Using MockLLM.
+[RETRY] No failed IDs file found at data/failed_ids.txt
+
+Retry completed successfully on attempt 2.
+
+Finished: Mon May 18 21:58:03 IST 2026

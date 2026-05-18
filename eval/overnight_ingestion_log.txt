@@ -133,3 +133,17 @@ LLM is explicitly disabled. Using MockLLM.
   [TOPIC ERROR] embeddings — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=sentence+embeddings+semantic+similarity+dense+retrieval&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
 
 [TOPIC] hallucination  |  query: "hallucination detection mitigation language models"
+  [TOPIC ERROR] hallucination — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=hallucination+detection+mitigation+language+models&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+[TOPIC] RAG_eval  |  query: "retrieval augmented generation evaluation metrics"
+  [TOPIC ERROR] RAG_eval — API error after retries: Page request resulted in HTTP 429 (https://export.arxiv.org/api/query?search_query=retrieval+augmented+generation+evaluation+metrics&id_list=&sortBy=relevance&sortOrder=descending&start=0&max_results=100)
+
+==========================================
+  Ingested : 0 papers
+  Skipped  : 0 duplicates / already present
+  Failed   : 0 errors
+==========================================
+
+Ingestion completed successfully on attempt 1.
+
+Finished: Mon May 18 09:29:08 IST 2026

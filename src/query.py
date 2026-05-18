@@ -1,4 +1,5 @@
 from llama_index.core import VectorStoreIndex, StorageContext, Settings
+from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters, FilterOperator
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from qdrant_client import QdrantClient
@@ -16,7 +17,25 @@ Settings.embed_model = HuggingFaceEmbedding(
 Settings.llm = None  # we handle LLM calls manually via Groq
 
 
-def get_diverse_retriever(question: str, top_k_per_source: int = 2):
+def build_filters(topic=None, year_from=None, year_to=None):
+    # Translate optional request params into a LlamaIndex MetadataFilters object.
+    # LlamaIndex passes this to QdrantVectorStore, which translates it into
+    # Qdrant's native filter format (MatchValue for equality, Range for comparisons).
+    # The filter runs BEFORE the ANN vector search — Qdrant restricts the candidate
+    # set to matching points first, then finds the most similar among those.
+    # Returning None (no conditions) tells LlamaIndex to search the full collection.
+    conditions = []
+    if topic:
+        conditions.append(MetadataFilter(key="topic", value=topic, operator=FilterOperator.EQ))
+    if year_from:
+        conditions.append(MetadataFilter(key="year", value=year_from, operator=FilterOperator.GTE))
+    if year_to:
+        conditions.append(MetadataFilter(key="year", value=year_to, operator=FilterOperator.LTE))
+    return MetadataFilters(filters=conditions) if conditions else None
+
+
+def get_diverse_retriever(question: str, top_k_per_source: int = 2,
+                           topic=None, year_from=None, year_to=None):
     client = QdrantClient(host="qdrant", port=6333)
     vector_store = QdrantVectorStore(
         client=client,
@@ -30,8 +49,10 @@ def get_diverse_retriever(question: str, top_k_per_source: int = 2):
         storage_context=storage_context
     )
 
-    # Retrieve more candidates than needed, then enforce diversity
-    retriever = index.as_retriever(similarity_top_k=15)
+    # Retrieve more candidates than needed, then enforce diversity.
+    # filters=None means no payload restriction — full collection search.
+    filters = build_filters(topic=topic, year_from=year_from, year_to=year_to)
+    retriever = index.as_retriever(similarity_top_k=15, filters=filters)
     all_nodes = retriever.retrieve(question)
 
     # Enforce source diversity — max 2 chunks per paper
@@ -49,11 +70,13 @@ def get_diverse_retriever(question: str, top_k_per_source: int = 2):
 
     return diverse_nodes
 
-def query_papers(question: str, evaluate: bool = True) -> dict:
+def query_papers(question: str, evaluate: bool = True,
+                 topic=None, year_from=None, year_to=None) -> dict:
     rewritten_question = rewrite_query(question)
 
-    # Retrieve diverse chunks using rewritten query
-    nodes = get_diverse_retriever(rewritten_question)
+    # Retrieve diverse chunks using rewritten query, with optional payload filters
+    nodes = get_diverse_retriever(rewritten_question, topic=topic,
+                                   year_from=year_from, year_to=year_to)
 
     # Build context from retrieved chunks
     context = "\n\n---\n\n".join([
@@ -99,14 +122,22 @@ Answer (reason across sources explicitly):"""
         for node in nodes
     ]))
 
+    # Include only the filters that were actually set so the response is clean
+    # when no filters are used (the common case)
+    active_filters = {k: v for k, v in
+                      {"topic": topic, "year_from": year_from, "year_to": year_to}.items()
+                      if v is not None}
+
     result = {
         "question": question,
         "rewritten_query": rewritten_question,
         "answer": answer,
         "sources": sources,
         "retrieved_chunks": len(nodes),
-        "top_relevance_score": round(nodes[0].score, 3) if nodes else 0
+        "top_relevance_score": round(nodes[0].score, 3) if nodes else 0,
     }
+    if active_filters:
+        result["filters_applied"] = active_filters
 
     # Run evaluation if requested
     if evaluate:
