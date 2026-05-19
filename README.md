@@ -2,8 +2,9 @@
 
 A multi-source retrieval and reasoning system built over AI/ML research papers.
 
-It answers complex cross-paper questions and evaluates whether its own 
-answers are grounded, sufficient, and reliable.
+It answers complex cross-paper questions, evaluates whether its own answers are 
+grounded and sufficient, and explicitly surfaces when papers disagree rather than 
+smoothing contradictions into a unified narrative.
 
 ---
 
@@ -29,9 +30,10 @@ This system is designed to answer that question explicitly.
 ![Architecture](docs/architecture.png)
 
 **Pipeline:**
-User Query → Query Rewriter → Diverse Retriever (Qdrant) → 
-Source-Aware Prompt → LLM Generator (Groq) → 
-Evaluation Layer → Structured Response with Confidence Score
+User Query → Query Rewriter → Diverse Retriever (Qdrant) →
+Deduplicated Numbered Context → LLM Generator (Groq) →
+Disagreement Detector (independent LLM pass) →
+Evaluation Layer → Structured Response with Confidence Score + Conflict Analysis
 
 ---
 
@@ -59,25 +61,33 @@ at 2. Forces the system to draw from multiple papers rather
 than dominating with one highly-similar source.
 
 **Source-aware prompting**
-Explicitly instructs the LLM to treat each chunk as a distinct 
-source and attribute every claim to a specific paper. When two 
-papers take different positions, the prompt requires the answer 
-to present them as an explicit conflict: "Paper A argues X. 
-Paper B argues Y." Smoothing contradictions into a single unified 
-claim is explicitly prohibited.
+Retrieved papers are deduplicated by title and numbered `[Paper 1]`, 
+`[Paper 2]`, etc. before being passed to the generator. The prompt 
+requires every factual claim to be attributed to a specific label 
+and prohibits using position words ("the first paper") that break 
+when the same source appears multiple times. Contradictory positions 
+must be presented as explicit conflicts, not merged.
 
 **Cross-paper disagreement detection**
-A dedicated second LLM pass runs on the raw retrieved context 
-(independent of the generated answer) and identifies genuine 
-cross-paper conflicts. It distinguishes real disagreements 
-(two papers making contradictory claims about the same specific 
-thing) from wording variation (same concept, different terminology). 
-Conflicts are classified by type (methodological, empirical, 
-definitional) and severity (direct contradiction, tension, 
-complementary-but-different), and attributed to specific papers 
-by title. The result appears as a structured `disagreement_analysis` 
-field in every response — always present, not buried in the 
-evaluation block.
+A dedicated second LLM pass runs on the raw retrieved context — 
+independently of the generated answer — and identifies genuine 
+cross-paper conflicts. Running it independently matters: the generation 
+LLM can soften disagreements even with strict instructions, so the 
+detector's findings are not contaminated by how the answer was phrased.
+
+Disagreements are classified along two axes:
+
+- **conflict_type**: `methodological` (different approaches to the same problem), `empirical` (conflicting results or measurements), `definitional` (incompatible definitions of a term)
+- **severity**: `direct_contradiction` (mutually exclusive claims — both cannot be true), `methodological_difference` (different approaches that could coexist), `tension` (different priorities or trade-offs in practice)
+
+A same-paper filter rejects false positives where both positions come 
+from the same source (e.g. one paper reporting results across two 
+different models). The JSON parser has multi-stage fallback recovery: 
+markdown fence stripping, targeted repair for a common LLM-generated 
+malformed brace pattern, and a brace-scan extraction for embedded JSON.
+
+The result appears as `disagreement_analysis` — a top-level field in 
+every response, always populated, not buried inside the evaluation block.
 
 **LLM-as-judge evaluation**
 Faithfulness and sufficiency scored by a separate model call 
@@ -112,7 +122,9 @@ no LLM involved. Avoids circularity in the evaluation pipeline.
 | Confidence distribution | 1 HIGH, 4 MEDIUM, 0 LOW |
 | Evaluator vs manual labels | 87% agreement (13/15) |
 
-### Core Design Insight
+### Core Design Insights
+
+**Relevance ≠ Sufficiency**
 
 Standard RAG systems have no mechanism to distinguish between 
 retrieving *related* content and retrieving *sufficient* content.
@@ -122,11 +134,24 @@ validated against manual labels, even the automated judge conflated
 the two in borderline cases — confirming how subtle this distinction 
 is in practice.
 
-> **Relevance ≠ Sufficiency**
-
 The 13% disagreement in evaluator validation clusters entirely 
 around borderline sufficiency cases — where context is topically 
 relevant but evidence density is too low to fully answer the question.
+
+**Disagreement ≠ Different Wording**
+
+Detecting genuine cross-paper disagreement requires distinguishing 
+between papers contradicting each other and papers simply presenting 
+different angles — most RAG systems flatten both into smooth summaries.
+
+A paper that says "late chunking is computationally efficient" and a 
+paper that says "chunk size should balance context and processing limits" 
+are not contradicting each other — they are addressing different aspects 
+of the same problem. Treating this as a `direct_contradiction` would 
+be wrong; classifying it as a `methodological_difference` is accurate. 
+The severity taxonomy (`direct_contradiction` / `methodological_difference` 
+/ `tension`) exists specifically to encode this distinction in a 
+machine-readable way.
 
 ---
 
@@ -160,8 +185,8 @@ docker exec -it research-intelligence-agent-api-1 python -m src.arxiv_ingest --r
 
 ## Sample API Usage
 
-This example demonstrates retrieval, query rewriting, evaluator scoring, 
-and source-grounded answer generation across the live 49-paper corpus.
+This example demonstrates retrieval, query rewriting, disagreement detection,
+evaluator scoring, and source-grounded answer generation across the live corpus.
 
 ### Request
 
@@ -169,7 +194,7 @@ and source-grounded answer generation across the live 49-paper corpus.
 curl -X POST "http://127.0.0.1:8000/query" \
 -H "Content-Type: application/json" \
 -d '{
-  "question": "How do different evaluation frameworks measure RAG faithfulness, and where do they disagree?",
+  "question": "How do different papers approach chunking strategies in RAG?",
   "evaluate": true
 }'
 ```
@@ -178,60 +203,56 @@ curl -X POST "http://127.0.0.1:8000/query" \
 
 ```json
 {
-  "question": "How do different evaluation frameworks measure RAG faithfulness, and where do they disagree?",
-  "rewritten_query": "What evaluation frameworks for Retrieval-Augmented Generation (RAG) models assess faithfulness, and how do their metrics and methodologies diverge?",
-  "answer": "Ragas measures faithfulness by checking whether claims in the answer can be inferred from retrieved context using an LLM. VERA focuses on factual consistency between generated text and grounded sources. FAIR-RAG uses a structured, gap-aware iterative refinement loop — deconstructing the query into a checklist and auditing evidence against it, requiring no model fine-tuning. SELF-RAG fine-tunes an LLM to emit inline reflection tokens that critique relevance and factual support during generation. The key disagreement is methodological: Ragas and VERA treat faithfulness as a post-hoc metric, while FAIR-RAG and SELF-RAG make it part of the generation process itself. SELF-RAG's reliance on fine-tuning is a further point of divergence from the others.",
+  "question": "How do different papers approach chunking strategies in RAG?",
+  "rewritten_query": "What chunking strategies are employed in Retrieval-Augmented Generation (RAG) models as described in various research papers?",
+  "answer": "According to [Paper 1], late chunking offers a more computationally efficient solution by leveraging the natural capabilities of embedding models, in contrast to contextual retrieval which incurs higher computational expenses. [Paper 2] takes a different view, arguing that chunks should be large enough to contain sufficient context for answering questions accurately, but not so large that they overwhelm the generator or exceed processing limits. Both [Paper 1] and [Paper 2] agree that chunking strategy is crucial for RAG performance, but they differ in their specific recommendations.",
   "sources": [
-    "VERA: Validation and Evaluation of Retrieval-Augmented Systems",
-    "FAIR-RAG: Faithful Adaptive Iterative Refinement for Retrieval-Augmented Generation",
-    "Ragas: Automated Evaluation of Retrieval Augmented Generation",
-    "Retrieval-Augmented Generation in Industry: An Interview Study"
+    "Reconstructing Context: Evaluating Advanced Chunking Strategies for Retrieval-Augmented Generation",
+    "Retrieval-Augmented Generation in Industry: An Interview Study on Use Cases, Requirements, Challenges, and Evaluation"
   ],
-  "retrieved_chunks": 6,
-  "top_relevance_score": 0.877,
+  "retrieved_chunks": 2,
+  "top_relevance_score": 0.921,
   "disagreement_analysis": {
     "disagreements_found": true,
     "conflict_count": 1,
     "conflicts": [
       {
-        "topic": "whether faithfulness is a post-hoc metric or part of generation",
+        "topic": "chunking strategy for RAG systems",
         "positions": [
           {
-            "paper": "Ragas: Automated Evaluation of Retrieval Augmented Generation",
-            "position": "faithfulness is evaluated after generation by checking claim-context entailment"
+            "paper": "Reconstructing Context: Evaluating Advanced Chunking Strategies for Retrieval-Augmented Generation",
+            "position": "Late chunking offers a more computationally efficient solution by leveraging the natural capabilities of embedding models."
           },
           {
-            "paper": "FAIR-RAG: Faithful Adaptive Iterative Refinement for Retrieval-Augmented Generation",
-            "position": "faithfulness is enforced during generation through iterative refinement, not measured after"
+            "paper": "Retrieval-Augmented Generation in Industry: An Interview Study on Use Cases, Requirements, Challenges, and Evaluation",
+            "position": "Chunks should be large enough to contain sufficient context for answering questions accurately, but not so large that they overwhelm the generator or exceed processing limits."
           }
         ],
         "conflict_type": "methodological",
-        "severity": "direct_contradiction"
+        "severity": "methodological_difference"
       }
     ],
-    "summary": "Ragas and FAIR-RAG disagree on when and how faithfulness is addressed — post-hoc scoring vs. inline generation control."
+    "summary": "The two papers disagree on the optimal chunking strategy for RAG, with one advocating for late chunking for computational efficiency and the other recommending a balanced approach to avoid overwhelming the generator."
   },
   "evaluation": {
     "overall_confidence": "MEDIUM",
     "faithfulness": {
-      "faithfulness_score": "LOW",
+      "faithfulness_score": "MEDIUM",
       "supported_claims": [
-        "Ragas measures faithfulness by estimating whether claims can be inferred from context."
+        "Late chunking offers a more computationally efficient solution.",
+        "Chunks should balance sufficient context against processing limits."
       ],
-      "unsupported_claims": [
-        "VERA explicitly mentions faithfulness as a separate metric.",
-        "FAIR-RAG and SELF-RAG disagree on the approach to measuring faithfulness."
-      ],
-      "reasoning": "The answer does not accurately represent all disagreements between sources. SELF-RAG's approach is not accurately framed as disagreeing with the others, and VERA does not explicitly define faithfulness as a standalone metric."
+      "unsupported_claims": [],
+      "reasoning": "Claims are grounded in the retrieved context and attributed to specific papers."
     },
     "retrieval_sufficiency": {
       "sufficiency_score": "SUFFICIENT",
-      "what_is_present": "Multiple evaluation frameworks discussed with their core mechanisms and limitations.",
-      "what_is_missing": "A direct side-by-side comparison of frameworks is not explicitly stated in any single source."
+      "what_is_present": "Two papers discussing chunking trade-offs with different priorities.",
+      "what_is_missing": "Empirical benchmarks comparing the strategies head-to-head."
     },
     "source_coverage": {
-      "coverage_score": "GOOD",
-      "unique_papers_used": 4
+      "coverage_score": "MODERATE",
+      "unique_papers_used": 2
     },
     "recommendation": "Answer is partially grounded. Treat with moderate caution."
   }
@@ -271,6 +292,7 @@ curl -X POST "http://127.0.0.1:8000/query" \
 | LLM | Groq / Llama 3.1 | Fast inference, free tier |
 | Corpus ingestion | ArXiv API + arxiv library | Automated, metadata-rich, deduplicated |
 | Reranking | Diversity-enforced retrieval | Avoids single-paper dominance |
+| Disagreement detection | Independent LLM pass on context | Not contaminated by answer generation |
 | Evaluation | LLM-as-judge + deterministic | Validated against manual labels |
 | Backend | FastAPI | Production-ready API layer |
 | Containerisation | Docker Compose | One-command reproducibility |
