@@ -7,7 +7,7 @@ from groq import Groq
 import os
 from dotenv import load_dotenv
 from src.query_rewriter import rewrite_query
-from src.evaluator import evaluate_response
+from src.evaluator import evaluate_response, detect_disagreements
 load_dotenv()
 
 # Must match exactly what was used during ingestion
@@ -89,26 +89,25 @@ def query_papers(question: str, evaluate: bool = True,
     # Send to LLM via Groq
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-    prompt = f"""You are a research assistant analyzing multiple AI/ML papers.
+    prompt = f"""You are a research assistant whose primary job is to surface how multiple AI/ML papers agree AND disagree on a question.
 
-Your job is to answer the question by reasoning ACROSS the provided sources.
-
-Instructions:
-- Treat each PAPER section as a distinct source with potentially different positions
-- If papers agree, say so explicitly
-- If papers disagree or take different approaches, surface that difference clearly
-- If a paper only mentions the topic indirectly, say that explicitly instead of overstating it
-- If retrieved context is insufficient to answer confidently, say:
-  "Retrieved context is insufficient — this question needs broader coverage"
-- Never synthesize a smooth answer that hides disagreement between sources
-- Always attribute claims to specific papers
+Rules — follow all of them:
+1. Every factual claim must be attributed to a specific paper: write "According to [Paper X]..." or "[Paper X] argues that..."
+2. When two papers take different positions on the same aspect, present the conflict explicitly:
+   "[Paper A] argues [position]. [Paper B] takes a different view, arguing [position]."
+   Never merge these into a single smoothed claim.
+3. When papers genuinely agree on something, say so: "Both [Paper A] and [Paper B] agree that..."
+4. If a paper only touches a topic indirectly, say so rather than overstating its position.
+5. If the retrieved context is too thin to answer reliably, say:
+   "Retrieved context is insufficient — this question needs broader coverage."
+6. Answer in plain prose only — no JSON, no bullet lists, no headers.
 
 Context:
 {context}
 
 Question: {question}
 
-Answer (reason across sources explicitly, in plain prose only — do not output JSON, markdown code blocks, or structured data):"""
+Answer (attribute every claim, surface every disagreement explicitly):"""
 
     response = groq_client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -139,7 +138,15 @@ Answer (reason across sources explicitly, in plain prose only — do not output 
     if active_filters:
         result["filters_applied"] = active_filters
 
-    # Run evaluation if requested
+    # Disagreement detection always runs when 2+ papers are in the retrieved set.
+    # It's a content feature of the response, not an optional eval layer — callers
+    # need it to understand whether the answer reflects genuine consensus or conflict.
+    result["disagreement_analysis"] = detect_disagreements(
+        question=question,
+        context=context,
+        nodes=nodes
+    )
+
     if evaluate:
         evaluation = evaluate_response(
             question=question,

@@ -60,8 +60,24 @@ than dominating with one highly-similar source.
 
 **Source-aware prompting**
 Explicitly instructs the LLM to treat each chunk as a distinct 
-source and surface disagreements rather than synthesising 
-into one smooth answer.
+source and attribute every claim to a specific paper. When two 
+papers take different positions, the prompt requires the answer 
+to present them as an explicit conflict: "Paper A argues X. 
+Paper B argues Y." Smoothing contradictions into a single unified 
+claim is explicitly prohibited.
+
+**Cross-paper disagreement detection**
+A dedicated second LLM pass runs on the raw retrieved context 
+(independent of the generated answer) and identifies genuine 
+cross-paper conflicts. It distinguishes real disagreements 
+(two papers making contradictory claims about the same specific 
+thing) from wording variation (same concept, different terminology). 
+Conflicts are classified by type (methodological, empirical, 
+definitional) and severity (direct contradiction, tension, 
+complementary-but-different), and attributed to specific papers 
+by title. The result appears as a structured `disagreement_analysis` 
+field in every response — always present, not buried in the 
+evaluation block.
 
 **LLM-as-judge evaluation**
 Faithfulness and sufficiency scored by a separate model call 
@@ -76,16 +92,16 @@ no LLM involved. Avoids circularity in the evaluation pipeline.
 
 ## Corpus
 
-49 papers ingested across six topics via the ArXiv API, producing ~2,155 chunks.
+61 papers ingested across six topics via the ArXiv API, producing ~2,700 chunks.
 
 | Topic | Papers |
 |-------|--------|
-| RAG | 14 |
+| RAG | 15 |
 | LLM Evaluation | 13 |
-| Agents | 6 |
-| Embeddings | 6 |
+| Agents | 8 |
+| Embeddings | 13 |
 | Hallucination | 6 |
-| RAG Evaluation | 4 |
+| RAG Evaluation | 6 |
 
 ---
 
@@ -173,6 +189,28 @@ curl -X POST "http://127.0.0.1:8000/query" \
   ],
   "retrieved_chunks": 6,
   "top_relevance_score": 0.877,
+  "disagreement_analysis": {
+    "disagreements_found": true,
+    "conflict_count": 1,
+    "conflicts": [
+      {
+        "topic": "whether faithfulness is a post-hoc metric or part of generation",
+        "positions": [
+          {
+            "paper": "Ragas: Automated Evaluation of Retrieval Augmented Generation",
+            "position": "faithfulness is evaluated after generation by checking claim-context entailment"
+          },
+          {
+            "paper": "FAIR-RAG: Faithful Adaptive Iterative Refinement for Retrieval-Augmented Generation",
+            "position": "faithfulness is enforced during generation through iterative refinement, not measured after"
+          }
+        ],
+        "conflict_type": "methodological",
+        "severity": "direct_contradiction"
+      }
+    ],
+    "summary": "Ragas and FAIR-RAG disagree on when and how faithfulness is addressed — post-hoc scoring vs. inline generation control."
+  },
   "evaluation": {
     "overall_confidence": "MEDIUM",
     "faithfulness": {
@@ -207,18 +245,19 @@ curl -X POST "http://127.0.0.1:8000/query" \
 **Known limitations:**
 - Evaluator overestimates sufficiency in borderline cases 
   (observed in 2/15 manual validation judgements)
-- Cross-paper comparison surfaces sources but does not 
-  deeply contrast positions
 - ArXiv PDF rate limiting caps practical corpus size per run 
-  (~50 papers reliably; `--resume` recovers partial failures)
+  (~60 papers reliably; `--resume` recovers partial failures)
+- Disagreement detector relies on the LLM correctly identifying 
+  cross-paper conflicts; may miss subtle theoretical disagreements 
+  that require deep domain knowledge to recognise
 
 **What I would build next:**
-- Cross-paper disagreement detection: identify when papers take 
-  genuinely different positions and surface that explicitly
 - Tighter sufficiency metric: require evidence density, 
   not just topical relevance
 - Scheduled corpus refresh: re-run ArXiv ingestion on a cron 
   schedule to keep the corpus current with new publications
+- Disagreement trending: track whether a conflict between two 
+  papers is resolved by more recent work in the corpus
 
 ---
 
