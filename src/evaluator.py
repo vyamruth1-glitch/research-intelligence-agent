@@ -230,7 +230,10 @@ For each genuine disagreement found, identify:
 - topic: the precise aspect they disagree on (specific, not broad)
 - positions: each paper's exact position, attributed to the PAPER label from the context
 - conflict_type: "methodological" (different approaches to same problem), "empirical" (conflicting results or findings), or "definitional" (incompatible definitions)
-- severity: "direct_contradiction" (mutually exclusive claims), "tension" (incompatible emphasis or priority), or "complementary_different" (genuinely different but not mutually exclusive)
+- severity — choose exactly one:
+  * "direct_contradiction": papers make mutually exclusive claims (one says X causes Y, another says X does NOT cause Y — both cannot be true)
+  * "methodological_difference": papers use fundamentally different approaches to the same problem (different metrics, frameworks, or techniques) but neither claim is logically ruled out by the other
+  * "tension": papers emphasise different priorities or trade-offs that could coexist in practice (e.g. one optimises for speed, another for accuracy)
 
 Only report disagreements grounded in the provided context. Do not infer or extrapolate.
 
@@ -251,7 +254,7 @@ Respond in this exact JSON format only:
         {{"paper": "exact PAPER label from context", "position": "their specific claim"}}
       ],
       "conflict_type": "methodological",
-      "severity": "direct_contradiction"
+      "severity": "methodological_difference"
     }}
   ],
   "summary": "one sentence describing the key conflict(s), or confirming papers are aligned"

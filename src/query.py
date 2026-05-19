@@ -78,12 +78,32 @@ def query_papers(question: str, evaluate: bool = True,
     nodes = get_diverse_retriever(rewritten_question, topic=topic,
                                    year_from=year_from, year_to=year_to)
 
-    # Build context from retrieved chunks
+    # Deduplicate nodes by title so the same paper never appears under two
+    # different positional labels in the context block.
+    seen_titles: set[str] = set()
+    unique_nodes = []
+    for node in nodes:
+        title = node.metadata.get('title', node.metadata.get('file_name', 'unknown'))
+        if title not in seen_titles:
+            seen_titles.add(title)
+            unique_nodes.append(node)
+
+    # Number each unique paper so the prompt can reference stable labels
+    # instead of relying on position words like "the first paper."
+    numbered_context = "\n\n---\n\n".join([
+        f"[Paper {i + 1}] {node.metadata.get('title', node.metadata.get('file_name', 'unknown'))}\n"
+        f"Relevance: {round(node.score, 3)}\n"
+        f"Content: {node.text}"
+        for i, node in enumerate(unique_nodes)
+    ])
+
+    # Also build the plain context string (used by evaluators) from the same
+    # deduplicated set so evaluation and generation see the same sources.
     context = "\n\n---\n\n".join([
         f"PAPER: {node.metadata.get('title', node.metadata.get('file_name', 'unknown'))}\n"
         f"Relevance: {round(node.score, 3)}\n"
         f"Content: {node.text}"
-        for node in nodes
+        for node in unique_nodes
     ])
 
     # Send to LLM via Groq
@@ -91,23 +111,27 @@ def query_papers(question: str, evaluate: bool = True,
 
     prompt = f"""You are a research assistant whose primary job is to surface how multiple AI/ML papers agree AND disagree on a question.
 
+The context below lists each paper with a stable label: [Paper 1], [Paper 2], etc.
+
 Rules — follow all of them:
-1. Every factual claim must be attributed to a specific paper: write "According to [Paper X]..." or "[Paper X] argues that..."
-2. When two papers take different positions on the same aspect, present the conflict explicitly:
+1. Refer to papers by their assigned label ([Paper 1], [Paper 2], ...) — never by position words like "the first paper" or "the second paper."
+2. Every factual claim must be attributed: write "According to [Paper 1]..." or "[Paper 2] argues that..."
+3. Do not attribute the same claim to two different labels if they refer to the same source — each label is a distinct paper.
+4. When two papers take different positions on the same aspect, present the conflict explicitly:
    "[Paper A] argues [position]. [Paper B] takes a different view, arguing [position]."
-   Never merge these into a single smoothed claim.
-3. When papers genuinely agree on something, say so: "Both [Paper A] and [Paper B] agree that..."
-4. If a paper only touches a topic indirectly, say so rather than overstating its position.
-5. If the retrieved context is too thin to answer reliably, say:
+   Never merge contradictory positions into a single smoothed claim.
+5. When papers genuinely agree, say so: "Both [Paper 1] and [Paper 2] agree that..."
+6. If a paper only touches a topic indirectly, say so rather than overstating its position.
+7. If the retrieved context is too thin to answer reliably, say:
    "Retrieved context is insufficient — this question needs broader coverage."
-6. Answer in plain prose only — no JSON, no bullet lists, no headers.
+8. Answer in plain prose only — no JSON, no bullet lists, no headers.
 
 Context:
-{context}
+{numbered_context}
 
 Question: {question}
 
-Answer (attribute every claim, surface every disagreement explicitly):"""
+Answer (use [Paper N] labels, attribute every claim, surface every disagreement explicitly):"""
 
     response = groq_client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -116,10 +140,10 @@ Answer (attribute every claim, surface every disagreement explicitly):"""
     )
 
     answer = response.choices[0].message.content
-    sources = list(set([
+    sources = [
         node.metadata.get('title', node.metadata.get('file_name', 'unknown'))
-        for node in nodes
-    ]))
+        for node in unique_nodes
+    ]
 
     # Include only the filters that were actually set so the response is clean
     # when no filters are used (the common case)
@@ -132,8 +156,8 @@ Answer (attribute every claim, surface every disagreement explicitly):"""
         "rewritten_query": rewritten_question,
         "answer": answer,
         "sources": sources,
-        "retrieved_chunks": len(nodes),
-        "top_relevance_score": round(nodes[0].score, 3) if nodes else 0,
+        "retrieved_chunks": len(unique_nodes),
+        "top_relevance_score": round(unique_nodes[0].score, 3) if unique_nodes else 0,
     }
     if active_filters:
         result["filters_applied"] = active_filters
@@ -144,7 +168,7 @@ Answer (attribute every claim, surface every disagreement explicitly):"""
     result["disagreement_analysis"] = detect_disagreements(
         question=question,
         context=context,
-        nodes=nodes
+        nodes=unique_nodes
     )
 
     if evaluate:
@@ -152,7 +176,7 @@ Answer (attribute every claim, surface every disagreement explicitly):"""
             question=question,
             answer=answer,
             context=context,
-            nodes=nodes
+            nodes=unique_nodes
         )
         result["evaluation"] = evaluation
 
